@@ -1,0 +1,14 @@
+{
+  "name": "稿迹 Paper Trail",
+  "short_name": "稿迹",
+  "description": "本地优先的论文投稿记录与进度追踪工具",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f3ea",
+  "theme_color": "#173f38",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
