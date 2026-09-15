@@ -11,9 +11,11 @@ export function migrationPackage(papers: Paper[]) {
   };
 }
 function fingerprint(p: Paper) {
+  const { keywords, ...rest } = p;
   // Same-day event order is meaningful and must be preserved.
   return JSON.stringify({
-    ...p,
+    ...rest,
+    keywords: keywords || [],
     updatedAt: "",
     history: p.history.slice().sort((a, b) => a.date.localeCompare(b.date)),
   });

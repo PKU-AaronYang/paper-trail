@@ -1,75 +1,20 @@
 "use client";
 import { useState } from "react";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   labels,
-  parseLetter,
+  deleteHistoryNode,
   timeline,
   today,
   uid,
   validDate,
-  type Draft,
   type Paper,
   type HistoryItem,
   type Status,
 } from "@/lib/tracker";
-export function LetterParser({ apply }: { apply: (value: Partial<Draft>) => void }) {
-  const [text, setText] = useState("");
-  const [result, setResult] = useState<ReturnType<typeof parseLetter> | null>(null);
-  return (
-    <details className="letter-box">
-      <summary>
-        <Sparkles size={16} />
-        从编辑来信提取进展
-      </summary>
-      <p>
-        本地关键词识别，不发送来信。支持中英文状态和明确标注的 YYYY-MM-DD 截止日期，请核对原文。
-      </p>
-      <Textarea
-        aria-label="编辑来信"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          setResult(null);
-        }}
-        placeholder="例如：Major revision. Deadline: 2026-10-15"
-      />
-      <Button
-        type="button"
-        variant="outline"
-        disabled={!text.trim()}
-        onClick={() => setResult(parseLetter(text))}
-      >
-        识别内容
-      </Button>
-      {result && (
-        <div>
-          <p>{result.evidence.join("；") || "未发现明确线索，请手动填写。"}</p>
-          <p>
-            {result.status ? `建议状态：${labels[result.status]}` : "状态待确认"}
-            {result.deadline ? ` · 截止 ${result.deadline}` : ""}
-          </p>
-          <Button
-            type="button"
-            disabled={!result.status && !result.deadline}
-            onClick={() =>
-              apply({
-                ...(result.status ? { status: result.status } : {}),
-                ...(result.deadline ? { deadline: result.deadline } : {}),
-              })
-            }
-          >
-            核对后应用到表单
-          </Button>
-        </div>
-      )}
-    </details>
-  );
-}
 export function HistoryEditor({
   paper,
   update,
@@ -172,6 +117,26 @@ export function HistoryEditor({
             >
               保存节点
             </Button>
+            {paper.history.some((h) => h.id === item.id) && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      "删除这个节点？当前状态将按剩余最新节点更新；删除最后一个节点时保留当前状态。",
+                    )
+                  )
+                    return;
+                  update(deleteHistoryNode(paper, item.id));
+                  setItem(null);
+                  notify("节点已删除");
+                }}
+              >
+                <Trash2 />
+                删除节点
+              </Button>
+            )}
             <Button type="button" variant="ghost" onClick={() => setItem(null)}>
               取消
             </Button>

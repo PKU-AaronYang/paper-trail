@@ -27,10 +27,13 @@ import {
   type Status,
 } from "@/lib/tracker";
 import { decodeSnapshot, type Snapshot } from "@/lib/progress";
+import { UsageGuide } from "@/components/usage-guide";
+import { CircleHelp } from "lucide-react";
+import { needsAction, normalizeKeywords } from "@/lib/tracker";
 import { ShareDialog, Progress, ExportButtons } from "@/components/progress-share";
 import { MigrationDialog } from "@/components/migration-dialog";
 import { migrationPackage, commitMigration, RECOVERY_KEY } from "@/lib/migration";
-import { LetterParser, HistoryEditor } from "@/components/tracker-enhancements";
+import { HistoryEditor } from "@/components/tracker-enhancements";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -125,7 +128,7 @@ export default function Home() {
   const [papers, setPapers] = useState<Paper[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "action" | "review" | "accepted">("all");
+  const [filter, setFilter] = useState<"all" | "action" | "review" | "archived">("all");
   const [panel, setPanel] = useState<"form" | "data" | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(blankDraft);
@@ -139,6 +142,8 @@ export default function Home() {
   const [view, setView] = useState<"list" | "board">("list");
   const [sort, setSort] = useState("priority");
   const [waitDays, setWaitDays] = useState(45);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [keywordsText, setKeywordsText] = useState("");
   const importRef = useRef<HTMLInputElement>(null);
   const [migration, setMigration] = useState<{ papers: Paper[]; filename: string } | null>(null);
 
@@ -266,14 +271,14 @@ export default function Home() {
       papers
         .filter((paper) => {
           const haystack =
-            `${paper.title} ${paper.venue} ${paper.manuscriptId} ${paper.authors}`.toLowerCase();
+            `${paper.title} ${paper.venue} ${paper.manuscriptId} ${paper.authors} ${(paper.keywords || []).join(" ")}`.toLowerCase();
           const matchesQuery = haystack.includes(query.trim().toLowerCase());
           const matchesFilter =
             filter === "all" ||
-            (filter === "action" && advice(paper, waitDays).priority > 0) ||
+            (filter === "action" && needsAction(paper)) ||
             (filter === "review" &&
               ["submitted", "editor", "review", "resubmitted"].includes(paper.status)) ||
-            (filter === "accepted" && ["accepted", "published"].includes(paper.status));
+            (filter === "archived" && terminal(paper.status));
           return matchesQuery && matchesFilter;
         })
         .sort((a, b) =>
@@ -288,6 +293,7 @@ export default function Home() {
   );
 
   const openNew = () => {
+    setKeywordsText("");
     setEventDate(today());
     setEventNote("");
     setEditingId(null);
@@ -295,6 +301,7 @@ export default function Home() {
     setPanel("form");
   };
   const openEdit = (paper: Paper) => {
+    setKeywordsText((paper.keywords || []).join("，"));
     setEventDate(today());
     setEventNote("");
     const { id: _id, updatedAt: _updated, history: _history, ...rest } = paper;
@@ -340,6 +347,7 @@ export default function Home() {
     history.sort((a, b) => a.date.localeCompare(b.date));
     const paper: Paper = {
       ...draft,
+      keywords: normalizeKeywords(keywordsText),
       title: draft.title.trim(),
       venue: draft.venue.trim(),
       id: editingId || uid(),
@@ -349,8 +357,8 @@ export default function Home() {
     };
     try {
       validatePapers([paper]);
-    } catch {
-      setNotice("请检查日期和链接，链接须以 http:// 或 https:// 开头");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "请检查日期、链接和关键词");
       return;
     }
     setPapers((items) =>
@@ -384,6 +392,7 @@ export default function Home() {
       "截止日期",
       "下一步行动",
       "备注",
+      "关键词",
     ];
     const rows = papers.map((p) =>
       [
@@ -398,6 +407,7 @@ export default function Home() {
         p.deadline,
         p.nextAction,
         p.notes,
+        (p.keywords || []).join("；"),
       ]
         .map(csvCell)
         .join(","),
@@ -434,15 +444,15 @@ export default function Home() {
   };
 
   const counts = {
-    action: papers.filter((p) => advice(p, waitDays).priority > 0).length,
+    action: papers.filter((p) => needsAction(p)).length,
     review: papers.filter((p) =>
       ["submitted", "editor", "review", "resubmitted"].includes(p.status),
     ).length,
-    accepted: papers.filter((p) => ["accepted", "published"].includes(p.status)).length,
+    archived: papers.filter((p) => terminal(p.status)).length,
   };
 
   const pending = papers
-    .filter((p) => advice(p, waitDays).priority > 0)
+    .filter((p) => needsAction(p))
     .sort(
       (a, b) =>
         advice(b, waitDays).priority - advice(a, waitDays).priority ||
@@ -493,9 +503,18 @@ export default function Home() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="h-9 rounded-xl bg-card pl-9"
-              placeholder="搜索论文、期刊或稿号"
+              placeholder="搜索论文、期刊、稿号或关键词"
             />
           </div>
+          <Button
+            variant="outline"
+            className="h-9 rounded-xl"
+            aria-label="使用说明"
+            onClick={() => setHelpOpen(true)}
+          >
+            <CircleHelp />
+            <span className="hidden sm:inline">使用说明</span>
+          </Button>
           <Button variant="outline" className="h-9 rounded-xl" onClick={() => setPanel("data")}>
             <Settings2 /> <span className="hidden sm:inline">数据与备份</span>
           </Button>
@@ -508,12 +527,12 @@ export default function Home() {
       <div className="mx-auto max-w-[1240px] px-4 py-7 sm:px-6 lg:px-8">
         <div className="overview-heading">
           <p className="mb-2 text-xs font-semibold tracking-[0.14em] text-accent-foreground uppercase">
-            {new Date().getFullYear()} · 投稿总览
+            投稿总览
           </p>
           <h1 className="font-heading text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
-            投稿工作台。
+            投稿工作台
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">从第一稿，到正式发表。</p>
+          <p className="mt-2 text-sm text-muted-foreground">从第一稿，到正式发表</p>
         </div>
         {storageError && (
           <div className="storage-alert" role="alert">
@@ -524,14 +543,14 @@ export default function Home() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             ["全部投稿", papers.length, "所有记录"],
-            ["需要处理", counts.action, "返修、截止与等待"],
+            ["需要处理", counts.action, "准备与返修"],
             ["审稿中", counts.review, "编辑及外审"],
-            ["已接收", counts.accepted, "接收与发表"],
+            ["已归档", counts.archived, "接收、发表、拒稿与撤稿"],
           ].map(([label, value, note], i) => (
             <button
               key={String(label)}
-              onClick={() => setFilter((["all", "action", "review", "accepted"] as const)[i])}
-              className={`metric-card text-left ${filter === (["all", "action", "review", "accepted"] as const)[i] ? "ring-2 ring-primary/20" : ""}`}
+              onClick={() => setFilter((["all", "action", "review", "archived"] as const)[i])}
+              className={`metric-card text-left ${filter === (["all", "action", "review", "archived"] as const)[i] ? "ring-2 ring-primary/20" : ""}`}
             >
               <p className="text-xs text-muted-foreground">{label}</p>
               <div className="mt-3 flex items-end justify-between">
@@ -585,7 +604,7 @@ export default function Home() {
                     ? "需要处理"
                     : filter === "review"
                       ? "审稿中"
-                      : "已接收"}
+                      : "已归档"}
               </span>
               <NativeSelect
                 aria-label="排序"
@@ -634,6 +653,11 @@ export default function Home() {
                       </Badge>
                     </div>
                     <p className="venue-name">{p.venue}</p>
+                    <div className="keyword-tags">
+                      {(p.keywords || []).map((k) => (
+                        <span key={k}>{k}</span>
+                      ))}
+                    </div>
                     <div className="paper-meta">
                       <span>{p.round}</span>
                       <span>{p.manuscriptId || "暂未填写稿号"}</span>
@@ -685,6 +709,11 @@ export default function Home() {
                             {p.title}
                           </button>
                           <p className="subtle">{p.venue}</p>
+                          <div className="keyword-tags">
+                            {(p.keywords || []).map((k) => (
+                              <span key={k}>{k}</span>
+                            ))}
+                          </div>
                           <button className="icon-text" onClick={() => setSharePaper(p)}>
                             <Share2 size={14} />
                             分享进度
@@ -852,6 +881,18 @@ export default function Home() {
                 />
               </div>
               <div className="form-field">
+                <label htmlFor="paper-keywords">关键词</label>
+                <Input
+                  id="paper-keywords"
+                  value={keywordsText}
+                  onChange={(e) => setKeywordsText(e.target.value)}
+                  placeholder="例如：城市气候，遥感，热风险"
+                />
+                <p className="subtle">
+                  逗号分隔，最多 30 个，每个不超过 80 字；关键词不会加入分享快照。
+                </p>
+              </div>
+              <div className="form-field">
                 <label htmlFor="paper-notes">备注</label>
                 <Textarea
                   id="paper-notes"
@@ -859,13 +900,6 @@ export default function Home() {
                   onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
                 />
               </div>
-              <LetterParser
-                key={editingId || "new"}
-                apply={(value) => {
-                  setDraft((d) => ({ ...d, ...value }));
-                  setNotice("已填入表单，请核对后保存");
-                }}
-              />
               <div className="event-box">
                 <h3>本次进展</h3>
                 <p className="subtle">
@@ -942,14 +976,14 @@ export default function Home() {
                   <Button variant="outline" onClick={exportJSON}>
                     <FileJson /> 导出迁移包
                   </Button>
+                  <Button onClick={() => importRef.current?.click()}>
+                    <Upload /> 导入迁移包
+                  </Button>
                   <Button variant="outline" onClick={exportCSV}>
                     <Download /> 导出 CSV
                   </Button>
                   <Button variant="outline" onClick={exportICS}>
                     <CalendarDays /> 导出日历
-                  </Button>
-                  <Button variant="outline" onClick={() => importRef.current?.click()}>
-                    <Upload /> 导入迁移包 / JSON
                   </Button>
                   <input
                     ref={importRef}
@@ -1044,6 +1078,7 @@ export default function Home() {
           )}
         </SheetContent>
       </Sheet>
+      <UsageGuide open={helpOpen} onClose={() => setHelpOpen(false)} />
       <ShareDialog paper={sharePaper} onClose={() => setSharePaper(null)} notify={setNotice} />
       {migration && (
         <MigrationDialog

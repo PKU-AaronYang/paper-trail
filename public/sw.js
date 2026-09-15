@@ -1,4 +1,4 @@
-const CACHE = "paper-trail-v2";
+const CACHE = "paper-trail-v3";
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches

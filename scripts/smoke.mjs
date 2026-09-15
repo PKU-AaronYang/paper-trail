@@ -13,6 +13,10 @@ try {
   assert.ok(html.includes('投稿工作台'));
   assert.ok(html.includes('新建投稿'));
   assert.ok(html.includes('下一步'));
+  assert.ok(html.includes('使用说明'));
+  assert.ok(html.includes('已归档'));
+  assert.ok(!html.includes('投稿工作台。'));
+  assert.ok(!html.includes('从编辑来信提取进展'));
   const progress = renderToString(createElement(Progress, { data: { version: 1, title: '<private>', venue: '测试期刊', status: 'revision', events: [{ date: '2026-01-01', status: 'submitted' }, { date: '2026-02-01', status: 'revision' }] } }));
   assert.ok(progress.includes('&lt;private&gt;'));
   assert.ok(progress.includes('2026-02-01'));

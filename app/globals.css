@@ -871,3 +871,49 @@ summary:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+.keyword-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.keyword-tags:empty {
+  display: none;
+}
+.keyword-tags span {
+  padding: 3px 9px;
+  background: var(--muted);
+  color: var(--primary);
+  border-radius: 6px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.usage-guide {
+  display: grid;
+  gap: 18px;
+}
+.usage-guide h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.usage-guide p {
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--muted-foreground);
+}
+.history-editor .flex {
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  header > div {
+    gap: 6px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  header [data-slot="button"] {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+}

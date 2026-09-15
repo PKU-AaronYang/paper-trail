@@ -31,6 +31,7 @@ export type Paper = {
   deadline: string;
   nextAction: string;
   notes: string;
+  keywords?: string[];
   history: HistoryItem[];
 };
 export type Draft = Omit<Paper, "id" | "updatedAt" | "history">;
@@ -76,6 +77,22 @@ export const dayDiff = (from: string, to = today()) =>
   Math.round((Date.parse(to) - Date.parse(from)) / 86400000);
 export const terminal = (s: Status) =>
   ["accepted", "published", "rejected", "withdrawn"].includes(s);
+export const needsAction = (p: Paper) => ["preparing", "revision"].includes(p.status);
+export function normalizeKeywords(text: string) {
+  return [
+    ...new Set(
+      text
+        .split(/[,，;；\n]+/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+export function deleteHistoryNode(p: Paper, id: string): Paper {
+  if (!p.history.some((h) => h.id === id)) return p;
+  const history = timeline(p).filter((h) => h.id !== id);
+  return { ...p, history, status: history.at(-1)?.status ?? p.status, updatedAt: today() };
+}
 export const timeline = (p: Paper) =>
   p.history.slice().sort((a, b) => a.date.localeCompare(b.date));
 export function stageDays(p: Paper) {
@@ -154,6 +171,13 @@ export function validatePapers(raw: unknown): Paper[] {
   return data.map((p: unknown) => {
     if (!p || typeof p !== "object") throw new Error("记录格式错误");
     const row = p as Record<string, unknown>;
+    if (
+      row.keywords !== undefined &&
+      (!Array.isArray(row.keywords) ||
+        row.keywords.length > 30 ||
+        row.keywords.some((k) => typeof k !== "string" || !k.trim() || k.length > 80))
+    )
+      throw new Error("关键词最多 30 个，每个不超过 80 字");
     for (const key of ["id", ...Object.keys(blankDraft), "updatedAt"])
       if (typeof row[key] !== "string" || (row[key] as string).length > 100000)
         throw new Error(`字段 ${key} 无效`);
@@ -192,6 +216,9 @@ export function validatePapers(raw: unknown): Paper[] {
       id: row.id,
       ...Object.fromEntries(Object.keys(blankDraft).map((k) => [k, row[k]])),
       updatedAt: row.updatedAt,
+      ...(row.keywords !== undefined
+        ? { keywords: [...new Set((row.keywords as string[]).map((k) => k.trim()))] }
+        : {}),
       history: row.history.map((h) => ({
         id: h.id,
         date: h.date,
