@@ -1,6 +1,14 @@
 "use client";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-export function UsageGuide({ open, onClose, onFeedback }: { open: boolean; onClose: () => void; onFeedback: () => void }) {
+export function UsageGuide({
+  open,
+  onClose,
+  onFeedback,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onFeedback: () => void;
+}) {
   return (
     <Dialog
       open={open}
@@ -12,7 +20,30 @@ export function UsageGuide({ open, onClose, onFeedback }: { open: boolean; onClo
         <DialogTitle>稿迹使用说明</DialogTitle>
         <DialogDescription>手动记录进展，让每一轮投稿都有迹可循</DialogDescription>
         <div className="usage-guide">
-          <section><h3>联系作者</h3><p>有问题或想增加功能？<button type="button" className="text-button" onClick={()=>{onClose();onFeedback();}}>反馈与建议</button> · yangzw9615@163.com</p></section>
+          <section>
+            <h3>集中核查投稿状态</h3>
+            <p>
+              在工作台点击「投稿系统总览」，可查看全部稿件及投稿链接，包括已归档稿件。也可点击「一键打开全部」，有效链接去重后打开；浏览器拦截时请允许本站弹出窗口。逐篇点击「打开投稿系统」，在新标签页自行登录。核查后可点击「更新记录」手动保存进展。缺少链接时点击「补充
+              / 修改链接」。总览不会自动登录、抓取状态或批量打开网页。
+            </p>
+          </section>
+          <section>
+            <h3>联系作者</h3>
+            <p>
+              有问题或想增加功能？
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  onClose();
+                  onFeedback();
+                }}
+              >
+                反馈与建议
+              </button>{" "}
+              · yangzw9615@163.com
+            </p>
+          </section>
           <section>
             <h3>1. 新建与查找</h3>
             <p>

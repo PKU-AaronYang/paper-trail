@@ -15,6 +15,16 @@ try {
   assert.ok(html.includes('下一步'));
   assert.ok(html.includes('使用说明'));
   assert.ok(html.includes('反馈与建议'));
+  assert.ok(html.includes('投稿系统总览'));
+  assert.ok(html.includes('投稿小仪式'));
+  const { SubmissionPortalList } = await server.ssrLoadModule('/components/submission-portals.tsx');
+  const sample={id:'active',title:'在审稿件',authors:'作者',venue:'Journal',manuscriptId:'M-001',url:'https://example.org/submit',round:'第 1 轮',status:'review',submittedAt:'2026-09-01',updatedAt:'2026-09-15',deadline:'',nextAction:'',notes:'',history:[]};
+  const portals=renderToString(createElement(SubmissionPortalList,{papers:[sample,{...sample,id:'archived',title:'已归档稿件',status:'rejected',url:''},{...sample,id:'bad',title:'无效地址',url:'javascript:alert(1)'}],onEdit:()=>{}}));
+  assert.ok(portals.includes('在审稿件') && portals.includes('已归档稿件'));
+  assert.ok(portals.includes('href="https://example.org/submit"'));
+  assert.ok(portals.includes('尚未填写链接') && portals.includes('链接格式无效'));
+  assert.ok(portals.includes('一键打开全部'));
+  assert.ok(!portals.includes('href="javascript:'));
   assert.ok(html.includes('已归档'));
   assert.ok(!html.includes('投稿工作台。'));
   assert.ok(!html.includes('从编辑来信提取进展'));

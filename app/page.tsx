@@ -28,6 +28,8 @@ import {
 } from "@/lib/tracker";
 import { decodeSnapshot, type Snapshot } from "@/lib/progress";
 import { UsageGuide } from "@/components/usage-guide";
+import { SubmissionPortals } from "@/components/submission-portals";
+import { SubmissionRitual } from "@/components/submission-ritual";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { CircleHelp } from "lucide-react";
 import { needsAction, normalizeKeywords } from "@/lib/tracker";
@@ -145,6 +147,8 @@ export default function Home() {
   const [waitDays, setWaitDays] = useState(45);
   const [helpOpen, setHelpOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [portalsOpen, setPortalsOpen] = useState(false);
+  const [ritualOpen, setRitualOpen] = useState(false);
   const [keywordsText, setKeywordsText] = useState("");
   const importRef = useRef<HTMLInputElement>(null);
   const [migration, setMigration] = useState<{ papers: Paper[]; filename: string } | null>(null);
@@ -572,6 +576,16 @@ export default function Home() {
           />
         </div>
 
+        <div className="mt-6 flex flex-wrap gap-2 justify-end">
+          <Button variant="outline" onClick={() => setRitualOpen(true)}>
+            <Sparkles />
+            投稿小仪式
+          </Button>
+          <Button variant="outline" onClick={() => setPortalsOpen(true)}>
+            <ExternalLink />
+            投稿系统总览
+          </Button>
+        </div>
         <div className="work-grid">
           <section>
             <div className="section-heading">
@@ -1080,9 +1094,24 @@ export default function Home() {
           )}
         </SheetContent>
       </Sheet>
-      <div className="flex justify-center pb-6"><Button variant="ghost" onClick={()=>setFeedbackOpen(true)}>反馈与建议 · 联系作者</Button></div>
-      <UsageGuide open={helpOpen} onClose={() => setHelpOpen(false)} onFeedback={()=>setFeedbackOpen(true)} />
-      <FeedbackDialog open={feedbackOpen} onClose={()=>setFeedbackOpen(false)}/>
+      <div className="flex justify-center pb-6">
+        <Button variant="ghost" onClick={() => setFeedbackOpen(true)}>
+          反馈与建议 · 联系作者
+        </Button>
+      </div>
+      <SubmissionRitual open={ritualOpen} onClose={() => setRitualOpen(false)} />
+      <SubmissionPortals
+        open={portalsOpen}
+        onClose={() => setPortalsOpen(false)}
+        papers={papers}
+        onEdit={openEdit}
+      />
+      <UsageGuide
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        onFeedback={() => setFeedbackOpen(true)}
+      />
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <ShareDialog paper={sharePaper} onClose={() => setSharePaper(null)} notify={setNotice} />
       {migration && (
         <MigrationDialog
