@@ -14,6 +14,7 @@ try {
   assert.ok(html.includes('新建投稿'));
   assert.ok(html.includes('下一步'));
   assert.ok(html.includes('使用说明'));
+  assert.ok(html.includes('反馈与建议'));
   assert.ok(html.includes('已归档'));
   assert.ok(!html.includes('投稿工作台。'));
   assert.ok(!html.includes('从编辑来信提取进展'));

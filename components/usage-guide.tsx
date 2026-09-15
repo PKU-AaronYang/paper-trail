@@ -1,6 +1,6 @@
 "use client";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-export function UsageGuide({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function UsageGuide({ open, onClose, onFeedback }: { open: boolean; onClose: () => void; onFeedback: () => void }) {
   return (
     <Dialog
       open={open}
@@ -12,6 +12,7 @@ export function UsageGuide({ open, onClose }: { open: boolean; onClose: () => vo
         <DialogTitle>稿迹使用说明</DialogTitle>
         <DialogDescription>手动记录进展，让每一轮投稿都有迹可循</DialogDescription>
         <div className="usage-guide">
+          <section><h3>联系作者</h3><p>有问题或想增加功能？<button type="button" className="text-button" onClick={()=>{onClose();onFeedback();}}>反馈与建议</button> · yangzw9615@163.com</p></section>
           <section>
             <h3>1. 新建与查找</h3>
             <p>

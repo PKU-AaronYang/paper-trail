@@ -28,6 +28,7 @@ import {
 } from "@/lib/tracker";
 import { decodeSnapshot, type Snapshot } from "@/lib/progress";
 import { UsageGuide } from "@/components/usage-guide";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 import { CircleHelp } from "lucide-react";
 import { needsAction, normalizeKeywords } from "@/lib/tracker";
 import { ShareDialog, Progress, ExportButtons } from "@/components/progress-share";
@@ -143,6 +144,7 @@ export default function Home() {
   const [sort, setSort] = useState("priority");
   const [waitDays, setWaitDays] = useState(45);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [keywordsText, setKeywordsText] = useState("");
   const importRef = useRef<HTMLInputElement>(null);
   const [migration, setMigration] = useState<{ papers: Paper[]; filename: string } | null>(null);
@@ -1078,7 +1080,9 @@ export default function Home() {
           )}
         </SheetContent>
       </Sheet>
-      <UsageGuide open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <div className="flex justify-center pb-6"><Button variant="ghost" onClick={()=>setFeedbackOpen(true)}>反馈与建议 · 联系作者</Button></div>
+      <UsageGuide open={helpOpen} onClose={() => setHelpOpen(false)} onFeedback={()=>setFeedbackOpen(true)} />
+      <FeedbackDialog open={feedbackOpen} onClose={()=>setFeedbackOpen(false)}/>
       <ShareDialog paper={sharePaper} onClose={() => setSharePaper(null)} notify={setNotice} />
       {migration && (
         <MigrationDialog
