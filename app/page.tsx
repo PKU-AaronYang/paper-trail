@@ -579,7 +579,7 @@ export default function Home() {
         <div className="mt-6 flex flex-wrap gap-2 justify-end">
           <Button variant="outline" onClick={() => setRitualOpen(true)}>
             <Sparkles />
-            投稿小仪式
+            卜卦·投稿时间
           </Button>
           <Button variant="outline" onClick={() => setPortalsOpen(true)}>
             <ExternalLink />

@@ -15,10 +15,11 @@ export function SubmissionPortalList({
   onEdit: (p: Paper) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const [openingResult, setOpeningResult] = useState<{ opened: number; blocked: string[] } | null>(
     null,
   );
-  const urls = uniquePortalURLs(papers);
+  const activeStatuses = ["submitted", "editor", "review", "resubmitted"];
   const openAll = () => {
     if (urls.length > 10 && !window.confirm(`即将打开 ${urls.length} 个页面，是否继续？`)) return;
     let opened = 0;
@@ -46,12 +47,14 @@ export function SubmissionPortalList({
     }
     setOpeningResult({ opened, blocked });
   };
-  const visible = papers.filter((p) =>
+  const base = showAll ? papers : papers.filter((p) => activeStatuses.includes(p.status));
+  const visible = base.filter((p) =>
     [p.title, p.venue, p.authors, p.manuscriptId, ...(p.keywords || [])]
       .join(" ")
       .toLowerCase()
       .includes(query.trim().toLowerCase()),
   );
+  const urls = uniquePortalURLs(visible);
   return (
     <>
       <div className="share-actions">
@@ -60,8 +63,13 @@ export function SubmissionPortalList({
           一键打开全部（{urls.length} 个页面）
         </Button>
       </div>
+      <div className="share-actions">
+        <Button variant="outline" onClick={() => setShowAll((value) => !value)}>
+          {showAll ? "只显示进行中的稿件" : "选择展示其余稿件"}
+        </Button>
+      </div>
       <p className="subtle">
-        打开所有稿件的有效链接，不受搜索筛选影响；完全相同的链接只打开一次。浏览器可能拦截多个页面，请允许本站弹出窗口后再试。
+        默认显示正在投稿或审稿中的稿件。点击“选择展示其余稿件”可查看准备中、已接收、已拒稿等记录；一键打开只处理当前显示结果，完全相同的链接只打开一次。
       </p>
       {openingResult && (
         <div role="status" className="event-box">
@@ -100,8 +108,8 @@ export function SubmissionPortalList({
         />
       </label>
       <p className="subtle">
-        全部 {papers.length} 篇 · 已填写有效链接 {papers.filter((p) => portalURL(p.url)).length} 篇
-        · 当前显示 {visible.length} 篇（包含已归档稿件）
+        全部 {papers.length} 篇 · 当前范围 {base.length} 篇 · 已填写有效链接{" "}
+        {base.filter((p) => portalURL(p.url)).length} 篇 · 当前显示 {visible.length} 篇
       </p>
       <div className="portal-table-scroll">
         <table className="portal-table">

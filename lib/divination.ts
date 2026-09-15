@@ -83,13 +83,98 @@ export function lunarContext(date: Date) {
     clock: local.toISOString().slice(11, 16),
   };
 }
-export function submissionRitual(now = new Date()) {
+const TOPIC_SIGNALS = [
+  {
+    label: "人工智能 / 机器学习",
+    words: [
+      "人工智能",
+      "机器学习",
+      "深度学习",
+      "neural",
+      "transformer",
+      "machine learning",
+      "deep learning",
+      "llm",
+    ],
+  },
+  {
+    label: "医学 / 临床",
+    words: ["临床", "患者", "疾病", "医学", "clinical", "patient", "disease", "medical"],
+  },
+  {
+    label: "材料 / 化学",
+    words: ["材料", "催化", "化学", "聚合物", "material", "catalyst", "chemical", "polymer"],
+  },
+  {
+    label: "环境 / 气候",
+    words: ["气候", "环境", "污染", "碳排放", "climate", "environment", "pollution", "carbon"],
+  },
+  {
+    label: "社会科学 / 行为",
+    words: ["问卷", "行为", "社会", "政策", "survey", "behavior", "social", "policy"],
+  },
+];
+const METHOD_SIGNALS = [
+  { label: "实验 / 实证", words: ["实验", "试验", "样本", "experiment", "empirical", "sample"] },
+  {
+    label: "数据分析 / 模型",
+    words: ["模型", "预测", "回归", "数据", "model", "prediction", "regression", "dataset"],
+  },
+  {
+    label: "综述 / 理论",
+    words: ["综述", "系统评价", "理论", "review", "meta-analysis", "theory"],
+  },
+];
+function findSignals(text: string, groups: typeof TOPIC_SIGNALS) {
+  const lower = text.toLocaleLowerCase();
+  return groups.flatMap((group) => {
+    const hits = group.words.filter((word) => lower.includes(word.toLocaleLowerCase()));
+    return hits.length ? [{ label: group.label, hits }] : [];
+  });
+}
+function topicFingerprint(text: string) {
+  let hash = 2166136261;
+  for (const char of text.normalize("NFKC").trim().toLocaleLowerCase()) {
+    hash ^= char.codePointAt(0) || 0;
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+export function analyzeTopic(topic: string) {
+  const normalized = topic.normalize("NFKC").trim().replace(/\s+/g, " ");
+  return {
+    normalized,
+    fingerprint: topicFingerprint(normalized),
+    topics: findSignals(normalized, TOPIC_SIGNALS),
+    methods: findSignals(normalized, METHOD_SIGNALS),
+  };
+}
+export function submissionRitual(topic = "", now = new Date()) {
+  if (!topic.trim()) throw new Error("请先填写论文题目或摘要");
   const lunar = lunarContext(now),
-    hex = timeHexagram(lunar.yearNumber, lunar.month, lunar.day, lunar.hourNumber);
-  // Modern rule, not a traditional auspicious-day method or outcome prediction.
-  const offset = ((hex.upper + hex.lower + hex.moving - 1) % 7) + 1;
+    analysis = analyzeTopic(topic),
+    // The topic fingerprint is a modern, deterministic text rule. It is deliberately
+    // shown separately from the traditional time arithmetic below.
+    topicNumber = analysis.fingerprint,
+    upper = ((topicNumber + lunar.yearNumber + lunar.month) % 8) + 1,
+    lower = ((Math.floor(topicNumber / 8) + lunar.day + lunar.hourNumber) % 8) + 1,
+    moving = ((Math.floor(topicNumber / 64) + lunar.day + lunar.hourNumber) % 6) + 1,
+    baseHex = timeHexagram(lunar.yearNumber, lunar.month, lunar.day, lunar.hourNumber),
+    hex = {
+      ...baseHex,
+      upper,
+      lower,
+      moving,
+      original: [...TRIGRAMS[lower - 1].lines, ...TRIGRAMS[upper - 1].lines],
+    };
+  hex.changed = hex.original.map((line, i) => (i === moving - 1 ? 1 - line : line));
+  const lookup = (lines: number[]) =>
+    TRIGRAMS.find((t) => t.lines.every((n, i) => n === lines[i]))!.name;
+  hex.changedUpper = lookup(hex.changed.slice(3));
+  hex.changedLower = lookup(hex.changed.slice(0, 3));
+  const offset = ((topicNumber + upper + lower + moving) % 7) + 1;
   const hours = [9, 11, 13, 15, 17],
-    hour = hours[(hex.moving - 1) % hours.length];
+    hour = hours[(topicNumber + moving) % hours.length];
   const candidate = new Date(lunar.civilDate + "T00:00:00+08:00");
   candidate.setTime(candidate.getTime() + offset * 86400000);
   const date = new Date(candidate.getTime() + 8 * 3600000).toISOString().slice(0, 10);
@@ -101,5 +186,5 @@ export function submissionRitual(now = new Date()) {
     "提交后记得保存确认邮件和稿号，补上时间线。",
     "给最终文件再做一次备份，减少临时找文件的忙乱。",
   ];
-  return { lunar, hex, offset, date, hour, reminder: reminders[hex.moving - 1] };
+  return { lunar, hex, offset, date, hour, reminder: reminders[moving - 1], analysis };
 }

@@ -55,10 +55,22 @@ test("农历春节换年，闰月沿用月号，子时与午夜日界明确", ()
 });
 test("趣味推荐严格在随后7个北京时间自然日内，结果可复算", () => {
   for (const iso of ["2026-09-15T02:00:00Z", "2026-12-31T15:50:00Z", "2026-02-16T16:00:00Z"]) {
-    const r = submissionRitual(new Date(iso));
+    const r = submissionRitual("Climate model for urban heat", new Date(iso));
     const gap = (Date.parse(r.date) - Date.parse(r.lunar.civilDate)) / 86400000;
     assert.ok(gap >= 1 && gap <= 7);
     assert.ok([9, 11, 13, 15, 17].includes(r.hour));
-    assert.deepEqual(submissionRitual(new Date(iso)), r);
+    assert.deepEqual(submissionRitual("Climate model for urban heat", new Date(iso)), r);
   }
+});
+test("题目内容参与计算：同一时刻的不同题目可得到不同的分析与时段", () => {
+  const now = new Date("2026-09-15T02:00:00Z");
+  const climate = submissionRitual("Climate model for urban heat", now);
+  const clinical = submissionRitual("Clinical patient disease survey", now);
+  assert.notEqual(climate.analysis.fingerprint, clinical.analysis.fingerprint);
+  assert.notDeepEqual(
+    [climate.date, climate.hour, climate.hex.upper, climate.hex.lower],
+    [clinical.date, clinical.hour, clinical.hex.upper, clinical.hex.lower],
+  );
+  assert.ok(climate.analysis.topics.some((x) => x.label.includes("环境")));
+  assert.ok(clinical.analysis.topics.some((x) => x.label.includes("医学")));
 });
